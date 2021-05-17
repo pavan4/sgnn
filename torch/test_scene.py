@@ -58,7 +58,7 @@ UP_AXIS = 0 # z is 0th
 model = model.GenModel(args.encoder_dim, args.input_dim, args.input_nf, args.coarse_feat_dim, args.refine_feat_dim, args.num_hierarchy_levels, not args.no_pass_occ, not args.no_pass_feats, args.use_skip_sparse, args.use_skip_dense)
 if not args.cpu:
     model = model.cuda()
-checkpoint = torch.load(args.model_path)
+checkpoint = torch.load(args.model_path, map_location=torch.device('cpu'))
 model.load_state_dict(checkpoint['state_dict'])
 print('loaded model:', args.model_path)
 
@@ -69,8 +69,11 @@ def test(loss_weights, dataloader, output_vis, num_to_vis):
     num_vis = 0
     num_batches = len(dataloader)
     with torch.no_grad():
+        gc.collect()
         for t, sample in enumerate(dataloader):
             inputs = sample['input']
+            #print(len(inputs), sample.keys())
+            #print(inputs[0].shape, inputs[1].shape)
             input_dim = np.array(sample['sdf'].shape[2:])
             sys.stdout.write('\r[ %d | %d ] %s (%d, %d, %d)    ' % (num_vis, num_to_vis, sample['name'], input_dim[0], input_dim[1], input_dim[2]))
             sys.stdout.flush()
@@ -97,7 +100,8 @@ def test(loss_weights, dataloader, output_vis, num_to_vis):
             if len(output_sdf[0]) > 0:
                 vis_pred_sdf[0] = [output_sdf[0].cpu().numpy(), output_sdf[1].squeeze().cpu().numpy()]
             inputs = [inputs[0].numpy(), inputs[1].cpu().numpy()]
-            data_util.save_predictions(output_vis, sample['name'], inputs, None, None, vis_pred_sdf, None, sample['world2grid'], args.truncation)
+            target_sdf_save = sample['sdf'].numpy()
+            data_util.save_predictions(output_vis, sample['name'], inputs, target_sdf_save, None, vis_pred_sdf, None, sample['world2grid'], args.truncation)
             num_vis += 1
             if num_vis >= num_to_vis:
                 break
@@ -111,14 +115,14 @@ def main():
         test_files = test_files[:args.max_to_vis]
     else:
         args.max_to_vis = len(test_files)
-    random.seed(42)
-    random.shuffle(test_files)
+    #random.seed(42)
+    #random.shuffle(test_files)
     print('#test files = ', len(test_files))
     test_dataset = scene_dataloader.SceneDataset(test_files, args.input_dim, args.truncation, args.num_hierarchy_levels, args.max_input_height, 0, args.target_data_path)
-    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=scene_dataloader.collate)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0, collate_fn=scene_dataloader.collate)
 
-    if os.path.exists(args.output):
-        raw_input('warning: output dir %s exists, press key to overwrite and continue' % args.output)
+    #if os.path.exists(args.output):
+        #raw_input('warning: output dir %s exists, press key to overwrite and continue' % args.output)
     if not os.path.exists(args.output):
         os.makedirs(args.output)
 

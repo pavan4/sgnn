@@ -246,7 +246,7 @@ def make_scale_transform(scale):
         transform[k,k] = scale[k]
     return transform
 
-
+@torch.no_grad()
 def save_predictions(output_path, names, inputs, target_for_sdf, target_for_occs, output_sdf, output_occs, world2grids, truncation, thresh=1):
     if not os.path.isdir(output_path):
         os.makedirs(output_path)

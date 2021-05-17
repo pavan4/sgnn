@@ -361,12 +361,12 @@ class GenModel(nn.Module):
         if not isinstance(refine_max_dim, (list, tuple, np.ndarray)):
             refine_max_dim = [refine_max_dim, refine_max_dim, refine_max_dim]
         for k in range(3):
-            self.encoder.process_sparse[0].p0.spatial_size[k] = input_max_dim[k]
+            self.encoder.process_sparse[0].p0.spatial_size[k] = torch.tensor(input_max_dim[k].astype(np.int64)).detach()#input_max_dim[k]
             for h in range(len(self.refinement)):
-                self.refinement[h].p0.spatial_size[k] = refine_max_dim[k]
+                self.refinement[h].p0.spatial_size[k] = torch.tensor(refine_max_dim[k].astype(np.int64)).detach()
                 refine_max_dim *= 2
-                self.refinement[h].n0.spatial_size[k] = refine_max_dim[k]
-            self.surfacepred.p0.spatial_size[k] = refine_max_dim[k]
+                self.refinement[h].n0.spatial_size[k] = torch.tensor(refine_max_dim[k].astype(np.int64)).detach()#refine_max_dim[k]
+            self.surfacepred.p0.spatial_size[k] = torch.tensor(refine_max_dim[k].astype(np.int64)).detach()#refine_max_dim[k]
 
     def forward(self, x, loss_weights):
         outputs = []
